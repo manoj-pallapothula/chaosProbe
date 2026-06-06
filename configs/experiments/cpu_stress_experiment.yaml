@@ -1,0 +1,37 @@
+name: "CPU Stress — Target API"
+description: "Verify target-api maintains <500ms p99 latency under 80% CPU load"
+version: "1.0"
+
+steady_state:
+  checks:
+    - name: "API responds to health check"
+      type: metric
+      metric: "target_error_rate"
+      threshold: 0.01
+      operator: "<"
+
+fault:
+  type: cpu_stress
+  target: target-api
+  duration_seconds: 60
+  params:
+    cpu_load_percent: 80
+    workers: 2
+
+slo:
+  error_rate_percent: 5.0
+  latency_p99_ms: 500
+  availability_percent: 95.0
+
+rollback:
+  on_slo_breach: true
+  grace_period_seconds: 10
+
+observability:
+  prometheus_url: "http://localhost:9090"
+  scrape_interval_seconds: 5
+  metrics:
+    - target_request_duration_seconds
+    - target_requests_total
+    - target_error_rate
+    - target_cpu_usage_percent

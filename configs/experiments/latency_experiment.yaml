@@ -1,0 +1,37 @@
+name: "Latency Injection — Target API"
+description: "Inject 300ms latency and verify SLOs hold or rollback triggers"
+version: "1.0"
+
+steady_state:
+  checks:
+    - name: "Error rate nominal"
+      type: metric
+      metric: "target_error_rate"
+      threshold: 0.01
+      operator: "<"
+
+fault:
+  type: latency_injection
+  target: target-api
+  duration_seconds: 45
+  params:
+    latency_ms: 300
+    jitter_ms: 50
+    target_url: "http://localhost:8081"
+
+slo:
+  error_rate_percent: 1.0
+  latency_p99_ms: 800
+  availability_percent: 99.0
+
+rollback:
+  on_slo_breach: true
+  grace_period_seconds: 5
+
+observability:
+  prometheus_url: "http://localhost:9090"
+  scrape_interval_seconds: 5
+  metrics:
+    - target_request_duration_seconds
+    - target_requests_total
+    - target_error_rate
