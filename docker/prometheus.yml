@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: "chaosProbe"
+    static_configs:
+      - targets: ["chaosProbe-api:8080"]
+
+  - job_name: "target-api"
+    static_configs:
+      - targets: ["target-api:8081"]
+
+  - job_name: "target-worker"
+    static_configs:
+      - targets: ["target-worker:8082"]

@@ -1,0 +1,100 @@
+version: "3.9"
+
+services:
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: chaosuser
+      POSTGRES_PASSWORD: chaospass
+      POSTGRES_DB: chaosdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chaosuser"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  # ── ChaosProbe API ───────────────────────────────────────────────────────────
+  chaosProbe-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql://chaosuser:chaospass@postgres:5432/chaosdb
+      REDIS_URL: redis://redis:6379/0
+      PROMETHEUS_URL: http://prometheus:9090
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # ── Target Services ──────────────────────────────────────────────────────────
+  target-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.target
+    ports:
+      - "8081:8081"
+    environment:
+      SERVICE_NAME: target-api
+      PORT: "8081"
+    labels:
+      chaosProbe.target: "true"
+      chaosProbe.service: "target-api"
+
+  target-worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.target
+    ports:
+      - "8082:8082"
+    environment:
+      SERVICE_NAME: target-worker
+      PORT: "8082"
+    labels:
+      chaosProbe.target: "true"
+      chaosProbe.service: "target-worker"
+
+volumes:
+  postgres_data:
+  grafana_data:
