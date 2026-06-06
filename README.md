@@ -159,4 +159,4 @@ chaosProbe/
 
 
 **Manoj Kumar Pallapothula** 
-[LinkedIn](https://linkedin.com/in/manojkumarpallapothula) · [GitHub](https://github.com/manoj-pallapothula)
+[LinkedIn](https://linkedin.com/in/manojkumarpallapothula)
